@@ -4,7 +4,14 @@
   <title>LookingGlass</title>
 </head>
 <body>
-  <h1>Go Gala Hackathon 2016</h1>
-  {{ .Data }}
+  <h1>Banhammer</h1>
+  <h2>Go Gala Hackathon 2016</h2>
+
+  {{ .Max }} event(s) recorded
+  <ul>
+  {{ range .Requests }}
+    <li>{{ .Req.RemoteAddr }} {{ .RecordedAt }}:{{ .Req.URL }}</li>
+  {{ end }}
+  </ul>
 </body>
 </html>
