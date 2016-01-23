@@ -7,10 +7,16 @@
   <h1>Banhammer</h1>
   <h2>Go Gala Hackathon 2016</h2>
 
-  {{ .Max }} event(s) recorded
-  <ul>
+  {{ .Requests | len }} event(s) recorded
+<!--   <ul>
   {{ range .Requests }}
     <li>{{ .Req.RemoteAddr }} {{ .RecordedAt }}:{{ .Req.URL }}</li>
+  {{ end }}
+  </ul> -->
+
+  <ul>
+  {{ range $route, $reqs := .RouteGroups }}
+    <li>{{ $route }}: {{ $reqs | len }} reqs</li>
   {{ end }}
   </ul>
 </body>

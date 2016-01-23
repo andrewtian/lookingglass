@@ -87,9 +87,13 @@ func main() {
 
 func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	reqs := lg.Requests()
+	rg := &RouteGrouper{}
+	gr := rg.Group(reqs)
+
 	p := map[string]interface{}{
-		"Requests": reqs,
-		"Max":      len(reqs),
+		"Requests":    reqs,
+		"Max":         len(reqs),
+		"RouteGroups": gr,
 	}
 
 	tmpl, _ := template.ParseFiles(templateDir + "index.html")
