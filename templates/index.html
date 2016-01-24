@@ -4,19 +4,33 @@
   <title>LookingGlass</title>
 </head>
 <body>
-  <h1>Banhammer</h1>
+  <h1>LookingGlass</h1>
   <h2>Go Gala Hackathon 2016</h2>
-
   {{ .Requests | len }} event(s) recorded
-<!--   <ul>
+  {{ $a := .ResponseTimeAnalysis }}
+  <dl>
+    <dt>min</dt>
+    <dd>{{ $a.Min }}</dd>
+    <dt>max</dt>
+    <dd>{{ $a.Max }}</dd>
+    <dt>mean</dt>
+    <dd>{{ $a.Mean }}</dd>
+  </dl><!--   <ul>
   {{ range .Requests }}
     <li>{{ .Req.RemoteAddr }} {{ .RecordedAt }}:{{ .Req.URL }}</li>
   {{ end }}
   </ul> -->
 
   <ul>
-  {{ range $route, $reqs := .RouteGroups }}
-    <li>{{ $route }}: {{ $reqs | len }} reqs</li>
+  {{ range $route, $events := .RouteGroups }}
+    <li>
+      <p>{{ $route }}: {{ $events | len }} reqs:</p>
+      <ul>
+        {{ range $events }}
+          <li>{{ .UpstreamDuration }}</li>
+        {{ end }}
+      </ul>
+    </li>
   {{ end }}
   </ul>
 </body>

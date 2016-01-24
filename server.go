@@ -14,11 +14,15 @@ import (
 const (
 	_targetURL  = "https://www.cloudflare.com:443"
 	templateDir = "templates/"
+
+	// 500 requests in a 60 second window
+	alertThreshold = 500
 )
 
 type RequestEvent struct {
-	Req        *http.Request
-	RecordedAt time.Time
+	Req              *http.Request
+	RecordedAt       time.Time
+	UpstreamDuration time.Duration
 }
 
 type LookingGlass struct {
@@ -46,15 +50,9 @@ func NewLookingGlass(target *url.URL) *LookingGlass {
 	}
 }
 
-func (lg *LookingGlass) process(r *http.Request) {
-	log.Print(fmt.Sprintf("lookingglass: logged %s\n", r.URL))
-	event := &RequestEvent{
-		Req:        r,
-		RecordedAt: time.Now(),
-	}
-
+func (lg *LookingGlass) logEvent(e *RequestEvent) {
 	lg.mutex.Lock()
-	lg.requestLog = append(lg.requestLog, event)
+	lg.requestLog = append(lg.requestLog, e)
 	lg.mutex.Unlock()
 }
 
@@ -67,8 +65,17 @@ func (lg *LookingGlass) Requests() []*RequestEvent {
 }
 
 func (lg *LookingGlass) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	lg.process(r)
+	event := &RequestEvent{
+		Req:        r,
+		RecordedAt: time.Now(),
+	}
+	lg.logEvent(event)
+
+	ts := time.Now()
 	lg.proxy.ServeHTTP(w, r)
+	event.UpstreamDuration = time.Now().Sub(ts)
+
+	log.Print(fmt.Sprintf("lookingglass: logged %s\n", r.URL))
 }
 
 var lg *LookingGlass
@@ -87,13 +94,17 @@ func main() {
 
 func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	reqs := lg.Requests()
+
+	tf := &TimeFilter{from: time.Now().Add(-time.Hour), to: time.Now()}
+	reqs = tf.Filter(reqs)
+
 	rg := &RouteGrouper{}
 	gr := rg.Group(reqs)
 
 	p := map[string]interface{}{
-		"Requests":    reqs,
-		"Max":         len(reqs),
-		"RouteGroups": gr,
+		"Requests":             reqs,
+		"RouteGroups":          gr,
+		"ResponseTimeAnalysis": analyzeResponseTimes(reqs),
 	}
 
 	tmpl, _ := template.ParseFiles(templateDir + "index.html")
